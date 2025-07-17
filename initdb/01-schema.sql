@@ -127,3 +127,80 @@ CREATE TABLE attachments (
 CREATE INDEX idx_attachments_appeal ON attachments(appeal_id);
 
 alter table users add tg_id bigint;
+
+-- здания
+CREATE TABLE buildings (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       TEXT NOT NULL,
+  address    TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- этажи
+CREATE TABLE floors (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  building_id UUID NOT NULL REFERENCES buildings(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  level      INT  NOT NULL,
+  plan_url   TEXT NOT NULL,
+  width_px   INT,
+  height_px  INT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- аппаратные камеры
+CREATE TABLE camera_hardware (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name          TEXT   NOT NULL,
+  stream_url    TEXT   NOT NULL,
+  ptz_enabled   BOOLEAN DEFAULT FALSE,
+  ptz_protocol  TEXT,
+  username      TEXT,
+  password      TEXT,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- камеры на плане
+CREATE TABLE cameras (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  floor_id        UUID NOT NULL REFERENCES floors(id) ON DELETE CASCADE,
+  hardware_id     UUID REFERENCES camera_hardware(id),
+  x_rel           NUMERIC(6,4) NOT NULL,
+  y_rel           NUMERIC(6,4) NOT NULL,
+  orientation_deg NUMERIC(5,2) NOT NULL DEFAULT 0,
+  fov_deg         NUMERIC(5,2) NOT NULL DEFAULT 90,
+  view_range      NUMERIC(8,2) NOT NULL DEFAULT 100,
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+-- зоны на этаже
+CREATE TABLE areas (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  floor_id   UUID NOT NULL REFERENCES floors(id) ON DELETE CASCADE,
+  name       TEXT   NOT NULL,
+  polygon    JSONB  NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- связь камер и зон
+CREATE TABLE camera_areas (
+  camera_id UUID NOT NULL REFERENCES cameras(id) ON DELETE CASCADE,
+  area_id   UUID NOT NULL REFERENCES areas(id)   ON DELETE CASCADE,
+  PRIMARY KEY(camera_id, area_id)
+);
+
+-- дашборды
+CREATE TABLE dashboards (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  description TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- связь дашбордов и камер
+CREATE TABLE dashboard_cameras (
+  dashboard_id UUID NOT NULL REFERENCES dashboards(id) ON DELETE CASCADE,
+  camera_id    UUID NOT NULL REFERENCES cameras(id)   ON DELETE CASCADE,
+  display_order INT DEFAULT 0,
+  PRIMARY KEY(dashboard_id, camera_id)
+);
