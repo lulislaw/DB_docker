@@ -204,3 +204,13 @@ CREATE TABLE dashboard_cameras (
   display_order INT DEFAULT 0,
   PRIMARY KEY(dashboard_id, camera_id)
 );
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE TABLE images (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),           -- уникальный идентификатор
+  filename VARCHAR(255) NOT NULL,                           -- оригинальное имя файла
+  filepath TEXT NOT NULL,                                   -- путь к файлу на диске
+  uploaded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()  -- время загрузки
+);
+
+-- Индекс на время загрузки (опционально, для ускорения сортировок)
+CREATE INDEX idx_images_uploaded_at ON images(uploaded_at DESC);
